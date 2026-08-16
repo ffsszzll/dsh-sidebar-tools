@@ -1,0 +1,27 @@
+{
+  "name": "dsh-sidebar-tools",
+  "version": "1.0.0",
+  "description": "DeepSeek Harness 动态 Cordis 插件：页面右侧工具箱边栏（天气 · 待办 · 日历）",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "plugin",
+    "sidebar",
+    "weather",
+    "todo",
+    "calendar"
+  ],
+  "license": "MIT",
+  "files": [
+    "plugin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node -e \"require('fs').readFileSync('plugin/host.js','utf8'); require('fs').readFileSync('plugin/client.js','utf8'); console.log('plugin sources OK')\""
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
