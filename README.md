@@ -9,7 +9,7 @@
 | 按钮 | 功能 | 数据来源 |
 |---|---|---|
 | 🌤️ 天气 | 当前温度 / 体感 / 湿度 / 风速 + 未来 5 天预报；支持输入城市（留空自动定位） | Host 端获取 [wttr.in](https://wttr.in)（免密钥），Client 经 `host.call('weather.get')` 读取 |
-| ✅ 待办 | 添加、勾选完成、删除，统计总数 / 未完成数 | Host 进程内内存存储（RPC：`todo.list/add/toggle/remove`） |
+| ✅ 待办 | 添加、勾选完成、删除，统计总数 / 未完成数 | Host 端持久化到工作区文件 `<workspaceRoot>\dsh-sidebar-todos.json`（RPC：`todo.list/add/toggle/remove`），重启 / 更新自动恢复 |
 | 📅 日历 | 月历网格（周一开头）、翻月、今天高亮、点击选日 | 纯 Client 渲染 |
 
 ## 截图
@@ -21,7 +21,7 @@ _（待补充：`docs/screenshot.png`，浅色 / 深色模式各一张）_
 - **挂载点**：`shell.overlay` 插槽（框架级浮层，纯增量 `list` 插槽，不替换任何出厂 UI），侧边栏固定停靠页面右缘垂直居中。
 - **Host 半段**（`plugin/host.js`）：
   - `weather.get`：双通道获取天气 —— 优先 `ctx.web.fetch`（若部署注册了 fetch provider），否则回退 `ctx.subprocess` 调用系统自带 `curl.exe` 请求 `https://wttr.in/<city>?format=j1`，解析当前天气与 5 天预报。
-  - `todo.list / todo.add / todo.toggle / todo.remove`：待办事项的内存存储与增删改。
+  - `todo.list / todo.add / todo.toggle / todo.remove`：待办事项的增删改；启动时通过 `fs` 服务从 `<workspaceRoot>\dsh-sidebar-todos.json` 自动加载，每次变更原子写入，`fs` 不可用时降级为纯内存。
 - **Client 半段**（`plugin/client.js`）：
   - 注册 `shell.overlay` 列表插槽（`id: 'dsh-tools-sidebar'`）。
   - 三个面板组件：天气、待办、日历（全部使用 `React.createElement`，无 JSX）。
@@ -49,7 +49,7 @@ _（待补充：`docs/screenshot.png`，浅色 / 深色模式各一张）_
 
 ## 已知限制
 
-- **待办持久化**：存储在 Host 进程内存中 —— 页面刷新不丢失，但插件更新（停旧 Run 启新 Run）或 Host 进程重启后会重置。如需磁盘持久化，可扩展 Host 端通过 `fs` 服务读写 JSON 文件。
+- **待办持久化文件**：保存在工作区根目录 `dsh-sidebar-todos.json`（UTF-8 JSON 数组）。删除该文件即清空待办；文件损坏时插件会从空列表重新开始。
 - **天气网络**：数据来自 wttr.in；要求本机可用 `curl.exe`（Windows 10+ 自带，位于 `System32`）或部署已注册 web fetch provider。
 
 ## 版本历史
@@ -59,6 +59,7 @@ _（待补充：`docs/screenshot.png`，浅色 / 深色模式各一张）_
 - **v3** (`pkg-3`)：修复预报天气代码解析 —— wttr.in 每日条目无顶层 `weatherCode`，改从 `hourly`（正午优先）提取；数值字段安全转换。
 - **v4** (`pkg-4`)：修复按钮白底白字 —— 完全自包含配色 + 深色硬覆盖，按钮文字加大加粗，新增 ⓘ 诊断按钮。
 - **v5** (`pkg-5`)：移除 ⓘ 诊断按钮，干净发布版。
+- **v6** (`pkg-6`)：待办持久化 —— 通过 `fs` 服务读写工作区 `dsh-sidebar-todos.json`，重启 / 更新不丢。
 
 ## 许可证
 

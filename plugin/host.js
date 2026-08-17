@@ -3,15 +3,61 @@
  *
  * 安装：将本文件完整内容粘贴到 cordis_define 的 code.host。
  * 说明：Host 沙箱禁用了全局 fetch/require/process，本段通过 cordis
- * 服务（web / subprocess / sandboxPolicy）完成网络与进程操作。
+ * 服务（web / subprocess / sandboxPolicy / fs）完成网络与进程操作。
+ * 待办事项持久化到工作区文件 <workspaceRoot>\dsh-sidebar-todos.json，
+ * 重启 / 更新后自动恢复；fs 不可用时自动降级为纯内存。
  * 详见仓库 README.md。
  */
 return {
   apply(ctx) {
-    // 待办事项：Host 进程内内存存储。页面刷新不丢，进程重启后重置。
+    // 待办事项：持久化到工作区文件 <workspaceRoot>\dsh-sidebar-todos.json，重启自动恢复。
     const todos = []
-    // curl -w 写入的状态码分隔标记
     const WX_SEP = '\n__DSH_WX_HTTP__'
+
+    // ── 待办持久化 ────────────────────────────────────────────────
+    const fsSvc = ctx.get('fs')
+    let todoFile = null // FsTarget | null
+    let ready = Promise.resolve() // 首轮文件加载完成后才放行 todo 操作
+
+    if (fsSvc) {
+      const policy = ctx.get('sandboxPolicy')
+      const root = policy && typeof policy.workspaceRoot === 'string' ? policy.workspaceRoot : null
+      if (root) {
+        ready = (async () => {
+          const target = await fsSvc.resolve(root + '\\dsh-sidebar-todos.json')
+          todoFile = target
+          let exists = false
+          try {
+            exists = (await fsSvc.stat(target)) !== undefined
+          } catch (e) { /* 保留纯内存模式 */ }
+          if (exists) {
+            try {
+              const text = await fsSvc.readText(target)
+              const parsed = JSON.parse(text)
+              if (Array.isArray(parsed)) {
+                for (const it of parsed) {
+                  if (it && typeof it.id === 'string' && typeof it.text === 'string') {
+                    todos.push({
+                      id: it.id,
+                      text: it.text,
+                      done: !!it.done,
+                      createdAt: typeof it.createdAt === 'number' ? it.createdAt : Date.now(),
+                    })
+                  }
+                }
+              }
+            } catch (e) { /* 文件损坏 → 从空列表开始 */ }
+          }
+        })().catch(() => { /* fs 失败 → 纯内存模式 */ })
+      }
+    }
+
+    const saveTodos = async () => {
+      if (!todoFile) return
+      try {
+        await fsSvc.writeText(todoFile, JSON.stringify(todos, null, 2))
+      } catch (e) { /* 写失败不致命，保持内存态 */ }
+    }
 
     // 安全转换：缺失/非法数值 → null（null 是合法 JSON，NaN/undefined 不是）
     const toNum = (v) => {
@@ -148,9 +194,13 @@ return {
       return buildWeather(got.body, city)
     })
 
-    harness.handle('todo.list', () => todos.map((t) => ({ ...t })))
+    harness.handle('todo.list', async () => {
+      await ready
+      return todos.map((t) => ({ ...t }))
+    })
 
-    harness.handle('todo.add', (args) => {
+    harness.handle('todo.add', async (args) => {
+      await ready
       const text = args && typeof args.text === 'string' ? args.text.trim() : ''
       if (!text) return { ok: false, error: '待办内容不能为空' }
       const item = {
@@ -160,22 +210,27 @@ return {
         createdAt: Date.now(),
       }
       todos.push(item)
+      await saveTodos()
       return { ok: true, item: { ...item } }
     })
 
-    harness.handle('todo.toggle', (args) => {
+    harness.handle('todo.toggle', async (args) => {
+      await ready
       const id = args && typeof args.id === 'string' ? args.id : ''
       const item = todos.find((t) => t.id === id)
       if (!item) return { ok: false, error: '未找到该待办' }
       item.done = !item.done
+      await saveTodos()
       return { ok: true, item: { ...item } }
     })
 
-    harness.handle('todo.remove', (args) => {
+    harness.handle('todo.remove', async (args) => {
+      await ready
       const id = args && typeof args.id === 'string' ? args.id : ''
       const idx = todos.findIndex((t) => t.id === id)
       if (idx === -1) return { ok: false, error: '未找到该待办' }
       todos.splice(idx, 1)
+      await saveTodos()
       return { ok: true }
     })
   },
