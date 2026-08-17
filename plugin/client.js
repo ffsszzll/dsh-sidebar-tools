@@ -32,27 +32,21 @@ return {
       392: '⛈️', 395: '⛈️',
     }
 
-    // 人像 + 问号 图标（内联 SVG，颜色跟随主题）
+    // 人像 + 问号 图标：蓝色填充人形 + 旁边醒目的红色问号
     const personQuestionIcon = React.createElement('svg', {
-      width: 18,
-      height: 18,
+      width: 20,
+      height: 20,
       viewBox: '0 0 24 24',
-      fill: 'none',
-      stroke: 'currentColor',
-      strokeWidth: 1.8,
-      strokeLinecap: 'round',
-      strokeLinejoin: 'round',
     },
-      React.createElement('circle', { cx: 12, cy: 9, r: 4.5 }),
-      React.createElement('path', { d: 'M4.5 20.5c0-3.6 3.4-5.5 7.5-5.5s7.5 1.9 7.5 5.5' }),
+      React.createElement('circle', { cx: 7, cy: 8.5, r: 3.6, style: { fill: 'var(--dsx-accent)', stroke: 'none' } }),
+      React.createElement('path', { d: 'M2 21c0-3.8 2.4-5.6 5-5.6s5 1.8 5 5.6z', style: { fill: 'var(--dsx-accent)', stroke: 'none' } }),
       React.createElement('text', {
-        x: 12,
-        y: 10.4,
-        fontSize: 6,
-        fontWeight: 700,
+        x: 17.5,
+        y: 13.5,
+        fontSize: 13,
+        fontWeight: 800,
         textAnchor: 'middle',
-        fill: 'currentColor',
-        stroke: 'none',
+        style: { fill: 'var(--dsx-error)', stroke: 'none' },
       }, '?'),
     )
 
