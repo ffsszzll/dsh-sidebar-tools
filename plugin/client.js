@@ -32,6 +32,30 @@ return {
       392: '⛈️', 395: '⛈️',
     }
 
+    // 人像 + 问号 图标（内联 SVG，颜色跟随主题）
+    const personQuestionIcon = React.createElement('svg', {
+      width: 18,
+      height: 18,
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      strokeWidth: 1.8,
+      strokeLinecap: 'round',
+      strokeLinejoin: 'round',
+    },
+      React.createElement('circle', { cx: 12, cy: 9, r: 4.5 }),
+      React.createElement('path', { d: 'M4.5 20.5c0-3.6 3.4-5.5 7.5-5.5s7.5 1.9 7.5 5.5' }),
+      React.createElement('text', {
+        x: 12,
+        y: 10.4,
+        fontSize: 6,
+        fontWeight: 700,
+        textAnchor: 'middle',
+        fill: 'currentColor',
+        stroke: 'none',
+      }, '?'),
+    )
+
     function PanelHeader(props) {
       return React.createElement('div', { className: 'dsh-panel-header' },
         React.createElement('span', { className: 'dsh-panel-title' }, props.title),
@@ -308,7 +332,7 @@ return {
 
       return React.createElement('div', { className: 'dsh-sidebar-panel' },
         React.createElement(PanelHeader, {
-          title: '❓ 查查',
+          title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } }, personQuestionIcon, ' 查查'),
           onClose: props.onClose,
           actions: React.createElement('button', {
             className: 'dsh-icon-btn',
@@ -399,7 +423,7 @@ return {
       const buttons = [
         { id: 'weather', icon: '🌤️', label: '天气' },
         { id: 'todo', icon: '✅', label: '待办' },
-        { id: 'viewer', icon: '❓', label: '查查' },
+        { id: 'viewer', icon: personQuestionIcon, label: '查查' },
         { id: 'calendar', icon: '📅', label: '日历' },
       ]
       const toggle = (id) => setTab(tab === id ? null : id)
