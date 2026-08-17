@@ -21,7 +21,8 @@ return {
     let ready = Promise.resolve() // 首轮文件加载完成后才放行 todo 操作
 
     const PRIORITIES = ['high', 'medium', 'low']
-    const DUE_RE = /^\d{4}-\d{2}-\d{2}$/
+    // 截止时间：YYYY-MM-DD（仅日期）或 YYYY-MM-DDTHH:MM（日期+时间）
+    const DUE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/
 
     if (fsSvc) {
       const policy = ctx.get('sandboxPolicy')

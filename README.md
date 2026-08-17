@@ -9,7 +9,7 @@
 | 按钮 | 功能 | 数据来源 |
 |---|---|---|
 | 🌤️ 天气 | 当前温度 / 体感 / 湿度 / 风速 + 未来 5 天预报；支持输入城市（留空自动定位） | Host 端获取 [wttr.in](https://wttr.in)（免密钥），Client 经 `host.call('weather.get')` 读取 |
-| ✅ 待办 | 添加（可选优先级 高/中/低 与截止日期）、勾选完成、删除；按「未完成 → 优先级 → 创建时间」排序，逾期未完成标红 | Host 端持久化到工作区文件 `<workspaceRoot>\dsh-sidebar-todos.json`（RPC：`todo.list/add/toggle/remove`），重启 / 更新自动恢复 |
+| ✅ 待办 | 添加（可选优先级 高/中/低 与截止日期+时间）、勾选完成、删除；按「未完成 → 优先级 → 创建时间」排序，逾期未完成标红 | Host 端持久化到工作区文件 `<workspaceRoot>\dsh-sidebar-todos.json`（RPC：`todo.list/add/toggle/remove`），重启 / 更新自动恢复 |
 | 📅 日历 | 月历网格（周一开头）、翻月、今天高亮、点击选日 | 纯 Client 渲染 |
 
 ## 截图
@@ -21,7 +21,7 @@ _（待补充：`docs/screenshot.png`，浅色 / 深色模式各一张）_
 - **挂载点**：`shell.overlay` 插槽（框架级浮层，纯增量 `list` 插槽，不替换任何出厂 UI），侧边栏固定停靠页面右缘垂直居中。
 - **Host 半段**（`plugin/host.js`）：
   - `weather.get`：双通道获取天气 —— 优先 `ctx.web.fetch`（若部署注册了 fetch provider），否则回退 `ctx.subprocess` 调用系统自带 `curl.exe` 请求 `https://wttr.in/<city>?format=j1`，解析当前天气与 5 天预报。
-  - `todo.list / todo.add / todo.toggle / todo.remove`：待办事项的增删改；启动时通过 `fs` 服务从 `<workspaceRoot>\dsh-sidebar-todos.json` 自动加载，每次变更原子写入，`fs` 不可用时降级为纯内存。每条含优先级（`high`/`medium`/`low`）与可选截止日期（`YYYY-MM-DD`），旧数据自动迁移为默认「中」优先级。
+  - `todo.list / todo.add / todo.toggle / todo.remove`：待办事项的增删改；启动时通过 `fs` 服务从 `<workspaceRoot>\dsh-sidebar-todos.json` 自动加载，每次变更原子写入，`fs` 不可用时降级为纯内存。每条含优先级（`high`/`medium`/`low`）与可选截止时间（`YYYY-MM-DD` 或 `YYYY-MM-DDTHH:MM`），旧数据自动迁移为默认「中」优先级。
 - **Client 半段**（`plugin/client.js`）：
   - 注册 `shell.overlay` 列表插槽（`id: 'dsh-tools-sidebar'`）。
   - 三个面板组件：天气、待办、日历（全部使用 `React.createElement`，无 JSX）。
@@ -61,6 +61,7 @@ _（待补充：`docs/screenshot.png`，浅色 / 深色模式各一张）_
 - **v5** (`pkg-5`)：移除 ⓘ 诊断按钮，干净发布版。
 - **v6** (`pkg-6`)：待办持久化 —— 通过 `fs` 服务读写工作区 `dsh-sidebar-todos.json`，重启 / 更新不丢。
 - **v7** (`pkg-8`)：待办优先级与截止日期 —— 高/中/低优先级胶囊、日期选择器、逾期标红、智能排序；持久化格式升级并兼容旧数据。
+- **v8** (`pkg-9`)：截止日期升级为「日期+时间」—— `datetime-local` 选择器，逾期按当前时刻判断，仅日期数据兼容。
 
 ## 许可证
 

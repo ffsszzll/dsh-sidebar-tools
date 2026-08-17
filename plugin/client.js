@@ -169,9 +169,23 @@ return {
       })
 
       const now = new Date()
-      const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0')
+      const pad = (n) => String(n).padStart(2, '0')
+      const nowStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes())
       const PRIO_LABEL = { high: '高', medium: '中', low: '低' }
       const undone = items.filter((it) => !it.done).length
+
+      const isOverdue = (it) => {
+        if (it.done || !it.due) return false
+        const d = String(it.due)
+        // 含时间：到期时刻 < 当前时刻；仅日期：当天 23:59 到期，日期 < 今天才算逾期
+        return d.includes('T') ? d < nowStr : d < nowStr.slice(0, 10)
+      }
+
+      const fmtDue = (it) => {
+        const d = String(it.due)
+        const md = d.slice(5, 10).replace('-', '/')
+        return d.includes('T') ? md + ' ' + d.slice(11, 16) : md
+      }
 
       const listBody = !loaded
         ? React.createElement('div', { className: 'dsh-todo-empty' }, '加载中…')
@@ -188,7 +202,7 @@ return {
                   React.createElement('span', { className: 'dsh-todo-prio ' + (it.priority || 'medium') }, PRIO_LABEL[it.priority] || '中'),
                   React.createElement('span', { className: 'dsh-todo-text' + (it.done ? ' done' : '') }, it.text),
                   it.due
-                    ? React.createElement('span', { className: 'dsh-todo-due' + (it.due < todayStr && !it.done ? ' overdue' : '') }, String(it.due).slice(5).replace('-', '/'))
+                    ? React.createElement('span', { className: 'dsh-todo-due' + (isOverdue(it) ? ' overdue' : '') }, fmtDue(it))
                     : null,
                   React.createElement('button', { className: 'dsh-todo-del', onClick: () => remove(it.id), title: '删除' }, '✕'),
                 ),
@@ -218,11 +232,11 @@ return {
             }, PRIO_LABEL[p]),
           ),
           React.createElement('input', {
-            type: 'date',
+            type: 'datetime-local',
             className: 'dsh-date-input',
             value: due,
             onChange: (e) => setDue(e.target.value),
-            title: '截止日期（可选）',
+            title: '截止日期与时间（可选）',
           }),
         ),
         listBody,
