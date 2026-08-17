@@ -6,6 +6,7 @@
  * 服务（web / subprocess / sandboxPolicy / fs）完成网络与进程操作。
  * 待办事项持久化到工作区文件 <workspaceRoot>\dsh-sidebar-todos.json，
  * 重启 / 更新后自动恢复；fs 不可用时自动降级为纯内存。
+ * 每条待办含优先级（high/medium/low）与可选截止日期（YYYY-MM-DD）。
  * 详见仓库 README.md。
  */
 return {
@@ -18,6 +19,9 @@ return {
     const fsSvc = ctx.get('fs')
     let todoFile = null // FsTarget | null
     let ready = Promise.resolve() // 首轮文件加载完成后才放行 todo 操作
+
+    const PRIORITIES = ['high', 'medium', 'low']
+    const DUE_RE = /^\d{4}-\d{2}-\d{2}$/
 
     if (fsSvc) {
       const policy = ctx.get('sandboxPolicy')
@@ -37,12 +41,15 @@ return {
               if (Array.isArray(parsed)) {
                 for (const it of parsed) {
                   if (it && typeof it.id === 'string' && typeof it.text === 'string') {
-                    todos.push({
+                    const rec = {
                       id: it.id,
                       text: it.text,
                       done: !!it.done,
                       createdAt: typeof it.createdAt === 'number' ? it.createdAt : Date.now(),
-                    })
+                      priority: PRIORITIES.includes(it.priority) ? it.priority : 'medium',
+                    }
+                    if (typeof it.due === 'string' && DUE_RE.test(it.due)) rec.due = it.due
+                    todos.push(rec)
                   }
                 }
               }
@@ -203,12 +210,16 @@ return {
       await ready
       const text = args && typeof args.text === 'string' ? args.text.trim() : ''
       if (!text) return { ok: false, error: '待办内容不能为空' }
+      const priority = args && PRIORITIES.includes(args.priority) ? args.priority : 'medium'
+      const due = args && typeof args.due === 'string' && DUE_RE.test(args.due) ? args.due : null
       const item = {
         id: String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8),
         text,
         done: false,
         createdAt: Date.now(),
+        priority,
       }
+      if (due) item.due = due
       todos.push(item)
       await saveTodos()
       return { ok: true, item: { ...item } }
