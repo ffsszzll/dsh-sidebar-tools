@@ -303,5 +303,24 @@ return {
         return { ok: false, error: '无法打开文件: ' + String((err && err.message) || err) }
       }
     })
+
+    harness.handle('file.save', async (args) => {
+      await ready
+      const raw = args && typeof args.path === 'string' ? args.path.trim() : ''
+      const content = args && typeof args.content === 'string' ? args.content : ''
+      if (!raw) return { ok: false, error: '请填写文件路径' }
+      if (!fsSvc) return { ok: false, error: 'fs 服务不可用' }
+      const dataBytes = new TextEncoder().encode(content)
+      if (dataBytes.length > 524288) return { ok: false, error: '内容超过 512KB，暂不支持保存' }
+      try {
+        const policy = ctx.get('sandboxPolicy')
+        const root = policy && typeof policy.workspaceRoot === 'string' ? policy.workspaceRoot : undefined
+        const target = await fsSvc.resolve(raw, root ? { cwd: root } : undefined)
+        await fsSvc.writeText(target, content)
+        return { ok: true, path: raw, bytes: dataBytes.length }
+      } catch (err) {
+        return { ok: false, error: '保存失败: ' + String((err && err.message) || err) }
+      }
+    })
   },
 }

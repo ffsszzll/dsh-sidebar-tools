@@ -10,7 +10,7 @@
 |---|---|---|
 | 🌤️ 天气 | 当前温度 / 体感 / 湿度 / 风速 + 未来 5 天预报；支持输入城市（留空自动定位） | Host 端获取 [wttr.in](https://wttr.in)（免密钥），Client 经 `host.call('weather.get')` 读取 |
 | ✅ 待办 | 添加（可选优先级 高/中/低 与截止日期+时间）、勾选完成、删除；按「未完成 → 优先级 → 创建时间」排序，逾期未完成标红 | Host 端持久化到工作区文件 `<workspaceRoot>\dsh-sidebar-todos.json`（RPC：`todo.list/add/toggle/remove`），重启 / 更新自动恢复 |
-| 🔵❓ 查查 | 打开并显示指定文本文件内容（UTF-8，≤512KB）；路径可配置，支持绝对路径或相对工作区 | Host 端 `fs` 服务读取（RPC：`file.read` / `viewer.config` / `viewer.savePath`）；路径持久化到 `<workspaceRoot>\dsh-sidebar-settings.json` |
+| 🔵❓ 查查 | 打开并**编辑保存**文本文件（UTF-8，≤512KB）；路径可配置，支持绝对路径或相对工作区 | Host 端 `fs` 服务读写（RPC：`file.read` / `file.save` / `viewer.config` / `viewer.savePath`）；路径持久化到 `<workspaceRoot>\dsh-sidebar-settings.json` |
 | 📅 日历 | 月历网格（周一开头）、翻月、今天高亮、点击选日 | 纯 Client 渲染 |
 
 ## 截图
@@ -65,6 +65,8 @@ _（待补充：`docs/screenshot.png`，浅色 / 深色模式各一张）_
 - **v8** (`pkg-9`)：截止日期升级为「日期+时间」—— `datetime-local` 选择器，逾期按当前时刻判断，仅日期数据兼容。
 - **v9** (`pkg-10`)：Windows 日历同步（已回滚移除）。
 - **v10** (`pkg-12`)：新增「查查」文件查看器 —— 打开指定文本文件并显示内容，路径可配置并持久化到 `dsh-sidebar-settings.json`。
+- **v11–v14**：查查图标迭代 —— ❓ → 人像+问号 SVG → 蓝色人像 + 红色问号 → 人像放大。
+- **v15** (`pkg-6`)：查查升级为文本编辑器 —— 内容可编辑，新增「保存」按钮与保存状态提示，Host 新增 `file.save` 原子写入。
 
 ## 许可证
 
