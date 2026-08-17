@@ -56,6 +56,7 @@ return {
               }
             } catch (e) { /* 文件损坏 → 从空列表开始 */ }
           }
+          refreshIcs()
         })().catch(() => { /* fs 失败 → 纯内存模式 */ })
       }
     }
@@ -65,6 +66,85 @@ return {
       try {
         await fsSvc.writeText(todoFile, JSON.stringify(todos, null, 2))
       } catch (e) { /* 写失败不致命，保持内存态 */ }
+      refreshIcs()
+    }
+
+    // ── 日历同步（ICS 订阅，供 Windows 日历订阅）───────────────
+    let icsCache = ''
+
+    const escIcs = (s) => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+    const pad2 = (n) => String(n).padStart(2, '0')
+    const fmtUtc = (d) => d.getUTCFullYear() + pad2(d.getUTCMonth() + 1) + pad2(d.getUTCDate()) + 'T' + pad2(d.getUTCHours()) + pad2(d.getUTCMinutes()) + pad2(d.getUTCSeconds()) + 'Z'
+    const PRIO_ICS = { high: 1, medium: 5, low: 9 }
+    const PRIO_CN = { high: '高', medium: '中', low: '低' }
+
+    const generateIcs = () => {
+      const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//dsh-sidebar-tools//CN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:DSH 待办',
+      ]
+      const nowUtc = fmtUtc(new Date())
+      const pending = todos
+        .filter((t) => !t.done && typeof t.due === 'string' && t.due !== '')
+        .sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : (a.createdAt || 0) - (b.createdAt || 0)))
+      for (const t of pending) {
+        const due = t.due
+        const dateOnly = !due.includes('T')
+        const prio = PRIO_ICS[t.priority] || 5
+        lines.push('BEGIN:VEVENT')
+        lines.push('UID:' + t.id + '@dsh-sidebar')
+        lines.push('DTSTAMP:' + nowUtc)
+        if (dateOnly) {
+          lines.push('DTSTART;VALUE=DATE:' + due.replace(/-/g, ''))
+          const dt = new Date(Number(due.slice(0, 4)), Number(due.slice(5, 7)) - 1, Number(due.slice(8, 10)) + 1)
+          lines.push('DTEND;VALUE=DATE:' + dt.getFullYear() + pad2(dt.getMonth() + 1) + pad2(dt.getDate()))
+        } else {
+          const y = Number(due.slice(0, 4))
+          const mo = Number(due.slice(5, 7)) - 1
+          const dd = Number(due.slice(8, 10))
+          const hh = Number(due.slice(11, 13))
+          const mm = Number(due.slice(14, 16))
+          lines.push('DTSTART:' + y + pad2(mo + 1) + pad2(dd) + 'T' + pad2(hh) + pad2(mm) + '00')
+          const end = new Date(y, mo, dd, hh, mm + 60)
+          lines.push('DTEND:' + end.getFullYear() + pad2(end.getMonth() + 1) + pad2(end.getDate()) + 'T' + pad2(end.getHours()) + pad2(end.getMinutes()) + '00')
+        }
+        lines.push('SUMMARY:' + '[' + (PRIO_CN[t.priority] || '中') + '] ' + escIcs(t.text))
+        lines.push('PRIORITY:' + prio)
+        lines.push('STATUS:CONFIRMED')
+        lines.push('DESCRIPTION:' + escIcs('优先级: ' + (PRIO_CN[t.priority] || '中') + '\n创建: ' + new Date(t.createdAt || Date.now()).toLocaleString('zh-CN')))
+        lines.push('END:VEVENT')
+      }
+      lines.push('END:VCALENDAR')
+      return lines.join('\r\n') + '\r\n'
+    }
+
+    const refreshIcs = () => {
+      try {
+        icsCache = generateIcs()
+      } catch (e) { /* 保留上次有效内容 */ }
+    }
+
+    const wsSvc = ctx.get('webServer')
+    if (wsSvc) {
+      try {
+        wsSvc.register({
+          kind: 'exact',
+          path: '/dsh-sidebar-todos.ics',
+          handler: (req, res) => {
+            try {
+              res.writeHead(200, {
+                'Content-Type': 'text/calendar; charset=utf-8',
+                'Cache-Control': 'no-cache, max-age=0',
+              })
+              res.end(icsCache)
+            } catch (e) { /* ignore */ }
+          },
+        })
+      } catch (e) { /* 路由冲突等 → 跳过同步路由 */ }
     }
 
     // 安全转换：缺失/非法数值 → null（null 是合法 JSON，NaN/undefined 不是）
@@ -205,6 +285,12 @@ return {
     harness.handle('todo.list', async () => {
       await ready
       return todos.map((t) => ({ ...t }))
+    })
+
+    harness.handle('todo.syncInfo', async () => {
+      const port = wsSvc && typeof wsSvc.port === 'number' ? wsSvc.port : 3080
+      const pending = todos.filter((t) => !t.done && t.due).length
+      return { url: 'http://127.0.0.1:' + port + '/dsh-sidebar-todos.ics', pending }
     })
 
     harness.handle('todo.add', async (args) => {
