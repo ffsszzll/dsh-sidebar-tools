@@ -18,7 +18,9 @@ return {
     // ── 待办持久化 ────────────────────────────────────────────────
     const fsSvc = ctx.get('fs')
     let todoFile = null // FsTarget | null
-    let ready = Promise.resolve() // 首轮文件加载完成后才放行 todo 操作
+    let settingsFile = null
+    let ready = Promise.resolve() // 首轮文件加载完成后才放行操作
+    let viewerPath = ''
 
     const PRIORITIES = ['high', 'medium', 'low']
     // 截止时间：YYYY-MM-DD（仅日期）或 YYYY-MM-DDTHH:MM（日期+时间）
@@ -56,6 +58,17 @@ return {
               }
             } catch (e) { /* 文件损坏 → 从空列表开始 */ }
           }
+          // 设置（查查面板的路径配置）
+          try {
+            const sTarget = await fsSvc.resolve(root + '\\dsh-sidebar-settings.json')
+            settingsFile = sTarget
+            const sExists = (await fsSvc.stat(sTarget)) !== undefined
+            if (sExists) {
+              const st = await fsSvc.readText(sTarget)
+              const sp = JSON.parse(st)
+              if (sp && typeof sp.viewerPath === 'string') viewerPath = sp.viewerPath
+            }
+          } catch (e) { /* 设置缺失/损坏 → 用默认值 */ }
         })().catch(() => { /* fs 失败 → 纯内存模式 */ })
       }
     }
@@ -65,6 +78,13 @@ return {
       try {
         await fsSvc.writeText(todoFile, JSON.stringify(todos, null, 2))
       } catch (e) { /* 写失败不致命，保持内存态 */ }
+    }
+
+    const saveSettings = async () => {
+      if (!settingsFile) return
+      try {
+        await fsSvc.writeText(settingsFile, JSON.stringify({ viewerPath }, null, 2))
+      } catch (e) { /* 写失败不致命 */ }
     }
 
     // 安全转换：缺失/非法数值 → null（null 是合法 JSON，NaN/undefined 不是）
@@ -244,6 +264,44 @@ return {
       todos.splice(idx, 1)
       await saveTodos()
       return { ok: true }
+    })
+
+    // ── 查查（文本文件查看器）──────────────────────────────────
+    harness.handle('viewer.config', async () => {
+      await ready
+      return { path: viewerPath || '' }
+    })
+
+    harness.handle('viewer.savePath', async (args) => {
+      await ready
+      const p = args && typeof args.path === 'string' ? args.path.trim() : ''
+      viewerPath = p
+      await saveSettings()
+      return { ok: true, path: viewerPath }
+    })
+
+    harness.handle('file.read', async (args) => {
+      await ready
+      const raw = args && typeof args.path === 'string' ? args.path.trim() : ''
+      if (!raw) return { ok: false, error: '请填写文件路径' }
+      if (!fsSvc) return { ok: false, error: 'fs 服务不可用' }
+      try {
+        const policy = ctx.get('sandboxPolicy')
+        const root = policy && typeof policy.workspaceRoot === 'string' ? policy.workspaceRoot : undefined
+        const target = await fsSvc.resolve(raw, root ? { cwd: root } : undefined)
+        let bytes
+        try {
+          bytes = await fsSvc.readBytes(target, undefined, 524288)
+        } catch (err) {
+          const m = String((err && err.message) || err)
+          return { ok: false, error: m.includes('TOO_LARGE') || m.includes('too large') ? '文件超过 512KB，暂不支持查看' : '读取失败: ' + m }
+        }
+        const content = new TextDecoder('utf-8').decode(bytes)
+        const lines = content.split('\n').length
+        return { ok: true, path: raw, content, bytes: bytes.length, lines }
+      } catch (err) {
+        return { ok: false, error: '无法打开文件: ' + String((err && err.message) || err) }
+      }
     })
   },
 }
