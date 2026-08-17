@@ -32,18 +32,18 @@ return {
       392: '⛈️', 395: '⛈️',
     }
 
-    // 人像 + 问号 图标：蓝色填充人形 + 旁边醒目的红色问号
+    // 人像 + 问号 图标：蓝色填充人形（放大）+ 旁边醒目的红色问号
     const personQuestionIcon = React.createElement('svg', {
       width: 20,
       height: 20,
       viewBox: '0 0 24 24',
     },
-      React.createElement('circle', { cx: 7, cy: 8.5, r: 3.6, style: { fill: 'var(--dsx-accent)', stroke: 'none' } }),
-      React.createElement('path', { d: 'M2 21c0-3.8 2.4-5.6 5-5.6s5 1.8 5 5.6z', style: { fill: 'var(--dsx-accent)', stroke: 'none' } }),
+      React.createElement('circle', { cx: 7.5, cy: 8.5, r: 4.4, style: { fill: 'var(--dsx-accent)', stroke: 'none' } }),
+      React.createElement('path', { d: 'M1.5 21Q7.5 11 13.5 21Z', style: { fill: 'var(--dsx-accent)', stroke: 'none' } }),
       React.createElement('text', {
-        x: 17.5,
-        y: 13.5,
-        fontSize: 13,
+        x: 18,
+        y: 14,
+        fontSize: 12.5,
         fontWeight: 800,
         textAnchor: 'middle',
         style: { fill: 'var(--dsx-error)', stroke: 'none' },
