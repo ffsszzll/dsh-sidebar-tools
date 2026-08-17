@@ -10,7 +10,7 @@
 |---|---|---|
 | 🌤️ 天气 | 当前温度 / 体感 / 湿度 / 风速 + 未来 5 天预报；支持输入城市（留空自动定位） | Host 端获取 [wttr.in](https://wttr.in)（免密钥），Client 经 `host.call('weather.get')` 读取 |
 | ✅ 待办 | 添加（可选优先级 高/中/低 与截止日期+时间）、勾选完成、删除；按「未完成 → 优先级 → 创建时间」排序，逾期未完成标红 | Host 端持久化到工作区文件 `<workspaceRoot>\dsh-sidebar-todos.json`（RPC：`todo.list/add/toggle/remove`），重启 / 更新自动恢复 |
-| 📄 查查 | 打开并显示指定文本文件内容（UTF-8，≤512KB）；路径可配置，支持绝对路径或相对工作区 | Host 端 `fs` 服务读取（RPC：`file.read` / `viewer.config` / `viewer.savePath`）；路径持久化到 `<workspaceRoot>\dsh-sidebar-settings.json` |
+| ❓ 查查 | 打开并显示指定文本文件内容（UTF-8，≤512KB）；路径可配置，支持绝对路径或相对工作区 | Host 端 `fs` 服务读取（RPC：`file.read` / `viewer.config` / `viewer.savePath`）；路径持久化到 `<workspaceRoot>\dsh-sidebar-settings.json` |
 | 📅 日历 | 月历网格（周一开头）、翻月、今天高亮、点击选日 | 纯 Client 渲染 |
 
 ## 截图
