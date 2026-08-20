@@ -15,7 +15,7 @@
 
 ## 截图
 
-_（待补充：`docs/screenshot.png`，浅色 / 深色模式各一张）_
+![侧边栏截图](docs/screenshot.png)
 
 ## 架构
 
