@@ -312,14 +312,18 @@ return {
       if (!fsSvc) return { ok: false, error: 'fs 服务不可用' }
       const dataBytes = new TextEncoder().encode(content)
       if (dataBytes.length > 524288) return { ok: false, error: '内容超过 512KB，暂不支持保存' }
+      const policy = ctx.get('sandboxPolicy')
+      const root = policy && typeof policy.workspaceRoot === 'string' ? policy.workspaceRoot : undefined
       try {
-        const policy = ctx.get('sandboxPolicy')
-        const root = policy && typeof policy.workspaceRoot === 'string' ? policy.workspaceRoot : undefined
         const target = await fsSvc.resolve(raw, root ? { cwd: root } : undefined)
         await fsSvc.writeText(target, content)
         return { ok: true, path: raw, bytes: dataBytes.length }
       } catch (err) {
-        return { ok: false, error: '保存失败: ' + String((err && err.message) || err) }
+        const m = String((err && err.message) || err)
+        if (m.includes('FS_SANDBOX_DENIED') || m.includes('file access denied')) {
+          return { ok: false, error: '保存被沙箱拒绝：当前模式只允许写入工作区（' + (root || 'D:\\Deepseek_Harness') + '）。请把文件复制到工作区内再保存，或在会话设置中放宽沙箱权限。' }
+        }
+        return { ok: false, error: '保存失败: ' + m }
       }
     })
   },
