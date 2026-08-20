@@ -364,7 +364,7 @@ return {
 
       return React.createElement('div', { className: 'dsh-sidebar-panel' },
         React.createElement(PanelHeader, {
-          title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } }, personQuestionIcon, ' 查查'),
+          title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } }, personQuestionIcon, ' 备忘'),
           onClose: props.onClose,
           actions: React.createElement('button', {
             className: 'dsh-icon-btn',
@@ -463,7 +463,7 @@ return {
       const buttons = [
         { id: 'weather', icon: '🌤️', label: '天气' },
         { id: 'todo', icon: '✅', label: '待办' },
-        { id: 'viewer', icon: personQuestionIcon, label: '查查' },
+        { id: 'viewer', icon: personQuestionIcon, label: '备忘' },
         { id: 'calendar', icon: '📅', label: '日历' },
       ]
       const toggle = (id) => setTab(tab === id ? null : id)
